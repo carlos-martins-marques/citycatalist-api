@@ -33,7 +33,7 @@
 ## partner consortium (www.5gtango.eu).
 """
 
-import datetime, logging
+import  logging
 from uuid import UUID
 from logger import TangoLogger
 
@@ -47,88 +47,89 @@ LOG.setLevel(logging.DEBUG)
 
 # Checks if the uuid has the right format (uuidv4)
 def is_valid_uuid(uuid_to_test, version=4):
-    try:
-        uuid_obj = UUID(uuid_to_test, version=version)
-    except:
-        return False
-    return str(uuid_obj) == uuid_to_test
+  try:
+    uuid_obj = UUID(uuid_to_test, version=version)
+  except:
+    return False
+  return str(uuid_obj) == uuid_to_test
 
 # Validates the incoming json to create Slice.
-def validate_create_slice (jsonData):
-  if 'sliceName' in jsonData and 'sliceTemplateId' in jsonData:
+def validate_create_slice(json_data):
+  if 'sliceName' in json_data and 'sliceTemplateId' in json_data:
     returnData["missing_field"] = "Everything is OK!!"
     return (returnData, 200)
   else:
-      returnData["missing_field"] = "Check if you request has a sliceTemplateId and a sliceName."
-      LOG.info('FormValidator NBI_Error: ' + str(returnData))
-      return (returnData, 400)
+    returnData["missing_field"] = "Check if you request has a sliceTemplateId and a sliceName."
+    LOG.info('FormValidator NBI_Error: ' + str(returnData))
+    return (returnData, 400)
 
 # Validates the incoming json to create Slice Subnet.
-def validate_create_slice_subnet (jsonData):
-  if 'sliceSubnetName' in jsonData and 'sliceSubnetTemplateId' in jsonData:
+def validate_create_slice_subnet(json_data):
+  if 'sliceSubnetName' in json_data and 'sliceSubnetTemplateId' in json_data:
     returnData["missing_field"] = "Everything is OK!!"
     return (returnData, 200)
   else:
-      returnData["missing_field"] = "Check if you request has a sliceSubnetTemplateId and a sliceSubnetName."
-      LOG.info('FormValidator NBI_Error: ' + str(returnData))
-      return (returnData, 400)
+    returnData["missing_field"] = "Check if you request has a \
+      sliceSubnetTemplateId and a sliceSubnetName."
+    LOG.info('FormValidator NBI_Error: ' + str(returnData))
+    return (returnData, 400)
 
 # Validates the incoming json to add Slice Subnet.
-def validate_add_slice_subnet (jsonData):
-  if 'sliceSubnetName' in jsonData:
+def validate_add_slice_subnet(json_data):
+  if 'sliceSubnetName' in json_data:
     returnData["missing_field"] = "Everything is OK!!"
     return (returnData, 200)
   else:
-      returnData["missing_field"] = "Check if you request has a sliceSubnetName."
-      LOG.info('FormValidator NBI_Error: ' + str(returnData))
-      return (returnData, 400)
+    returnData["missing_field"] = "Check if you request has a sliceSubnetName."
+    LOG.info('FormValidator NBI_Error: ' + str(returnData))
+    return (returnData, 400)
 
 # Validates the registration.
-def validate_registration (jsonData):
-  if 'sliceSubnet' in jsonData:
+def validate_registration(json_data):
+  if 'sliceSubnet' in json_data:
     returnData["missing_field"] = "Everything is OK!!"
     return (returnData, 200)
   else:
-      returnData["missing_field"] = "Check if you request has a sliceSubnet."
-      LOG.info('FormValidator NBI_Error: ' + str(returnData))
-      return (returnData, 400)
+    returnData["missing_field"] = "Check if you request has a sliceSubnet."
+    LOG.info('FormValidator NBI_Error: ' + str(returnData))
+    return (returnData, 400)
 
 # Validates the handover.
-def validate_handover (jsonData):
-  if 'sliceSubnetSrc' in jsonData and 'sliceSubnetDst' in jsonData:
+def validate_handover(json_data):
+  if 'sliceSubnetSrc' in json_data and 'sliceSubnetDst' in json_data:
     returnData["missing_field"] = "Everything is OK!!"
     return (returnData, 200)
   else:
-      returnData["missing_field"] = "Check if you request has a sliceSubnetSrc and a sliceSubnetDst."
-      LOG.info('FormValidator NBI_Error: ' + str(returnData))
-      return (returnData, 400)
+    returnData["missing_field"] = "Check if you request has a sliceSubnetSrc and a sliceSubnetDst."
+    LOG.info('FormValidator NBI_Error: ' + str(returnData))
+    return (returnData, 400)
 
 # Validates the incoming json to remove Slice Subnet.
-def validate_remove_slice_subnet (jsonData):
-  if 'sliceSubnetName' in jsonData:
+def validate_remove_slice_subnet(json_data):
+  if 'sliceSubnetName' in json_data:
     returnData["missing_field"] = "Everything is OK!!"
     return (returnData, 200)
   else:
-      returnData["missing_field"] = "Check if you request has a sliceSubnetName."
-      LOG.info('FormValidator NBI_Error: ' + str(returnData))
-      return (returnData, 400)
+    returnData["missing_field"] = "Check if you request has a sliceSubnetName."
+    LOG.info('FormValidator NBI_Error: ' + str(returnData))
+    return (returnData, 400)
 
 # Validates the incoming json to delete Slice Subnet.
-def validate_delete_slice_subnet (jsonData):
-  if 'sliceSubnetName' in jsonData:
+def validate_delete_slice_subnet(json_data):
+  if 'sliceSubnetName' in json_data:
     returnData["missing_field"] = "Everything is OK!!"
     return (returnData, 200)
   else:
-      returnData["missing_field"] = "Check if you request has a sliceSubnetName."
-      LOG.info('FormValidator NBI_Error: ' + str(returnData))
-      return (returnData, 400)
+    returnData["missing_field"] = "Check if you request has a sliceSubnetName."
+    LOG.info('FormValidator NBI_Error: ' + str(returnData))
+    return (returnData, 400)
 
 # Validates the incoming json to delete Slice.
-def validate_delete_slice (jsonData):
-  if 'sliceName' in jsonData:
+def validate_delete_slice(json_data):
+  if 'sliceName' in json_data:
     returnData["missing_field"] = "Everything is OK!!"
     return (returnData, 200)
   else:
-      returnData["missing_field"] = "Check if you request has a sliceName."
-      LOG.info('FormValidator NBI_Error: ' + str(returnData))
-      return (returnData, 400)
+    returnData["missing_field"] = "Check if you request has a sliceName."
+    LOG.info('FormValidator NBI_Error: ' + str(returnData))
+    return (returnData, 400)

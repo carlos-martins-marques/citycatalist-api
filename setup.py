@@ -34,17 +34,17 @@
 ## partner consortium (www.5gtango.eu).
 """
 
+# To use a consistent encoding
+import codecs
+from os import path
 # Always prefer setuptools over distutils
 from setuptools import setup, find_packages
-# To use a consistent encoding
-from codecs import open
-from os import path
 
 here = path.abspath(path.dirname(__file__))
 
 # Get the long description from the README file
-with open(path.join(here, 'README.md'), encoding='utf-8') as f:
-    long_description = f.read()
+with codecs.open(path.join(here, 'README.md'), encoding='utf-8') as f:
+  long_description = f.read()
 
 setup(
     name='citycatalist_api',
@@ -71,7 +71,10 @@ setup(
     keywords='Multi domain',
 
     packages=find_packages(),
-    install_requires=['Click==7.0', 'Flask==1.1.1', 'flask-restful==0.3.7', 'python-dateutil==2.8.0', 'requests==2.22.0', 'xmlrunner==1.7.7', 'pika==1.1.0', 'coloredlogs==10.0', 'MarkupSafe==1.1.1', 'jinja2==2.10.3', 'itsdangerous==1.1.0', 'tornado==5.1.1', 'Werkzeug==0.16.0'],
+    install_requires=['Click==7.0', 'Flask==1.1.1', 'flask-restful==0.3.7',
+                      'python-dateutil==2.8.0', 'requests==2.22.0', 'xmlrunner==1.7.7',
+                      'pika==1.1.0', 'coloredlogs==10.0', 'MarkupSafe==1.1.1', 'jinja2==2.10.3',
+                      'itsdangerous==1.1.0', 'tornado==5.1.1', 'Werkzeug==0.16.0'],
 
     #aniso8601 (8.0.0)
     #certifi (2019.11.28)

@@ -34,7 +34,11 @@
 ## partner consortium (www.5gtango.eu).
 """
 
-import os, requests, json, logging
+import os
+import json
+import logging
+import requests
+
 from logger import TangoLogger
 
 JSON_CONTENT_HEADER = {'Content-Type':'application/json'}
@@ -54,7 +58,7 @@ def get_url_catalogues():
   #port = "4011"
   base_url = 'http://'+ip_address+':'+port
   return base_url
-    
+
 # Prepares the URL_requests to manage Network Services instantiations belonging to the NST/NSI
 def get_url_sp_gtk():
   ip_address = os.environ.get("SONATA_GTK_SP")
@@ -66,15 +70,15 @@ def get_url_sp_gtk():
 
 # Returns the last URL version to send requests to the Repositories Docker
 def get_url_repositories():
-    ip_address = os.environ.get("SONATA_REP")
-    port = os.environ.get("SONATA_REP_PORT")
-    #ip_address = "193.136.92.119"
-    #port = "4012"
-    base_url = 'http://'+ip_address+':'+port
-    return base_url
+  ip_address = os.environ.get("SONATA_REP")
+  port = os.environ.get("SONATA_REP_PORT")
+  #ip_address = "193.136.92.119"
+  #port = "4012"
+  base_url = 'http://'+ip_address+':'+port
+  return base_url
 
 
-##################################### VIM NETWORKS MANAGEMENT REQUESTS ##############################
+################################### VIM NETWORKS MANAGEMENT REQUESTS ##############################
 '''
 Objective: Request to get all registered VIMs information
   Params: null
@@ -103,27 +107,27 @@ Objective: Request to get all registered VIMs information
       }
     ]
   } 
-'''
+''' # pylint: disable=pointless-string-statement
 def get_vims_info():
   LOG.info("Requesting VIMs information.")
   url = get_url_sp_gtk() + '/slices/vims'
   response = requests.get(url, headers=JSON_CONTENT_HEADER)
-  
-  if (response.status_code == 200):
-      jsonresponse = json.loads(response.text)
+
+  if response.status_code == 200:
+    jsonresponse = json.loads(response.text)
   else:
-      jsonresponse = {'http_code': response.status_code,'message': response.reason}
-      LOG.info(" Retrieving VIMs information FAILED: " +str(jsonresponse))
+    jsonresponse = {'http_code': response.status_code, 'message': response.reason}
+    LOG.info(" Retrieving VIMs information FAILED: " +str(jsonresponse))
 
   return jsonresponse
-################################ NETWORK SERVICES REQUESTS/RECORDS ##################################
+############################### NETWORK SERVICES REQUESTS/RECORDS ##################################
 # POST /requests to INSTANTIATE Network Slice instance
 def net_serv_instantiate(slice_data):
   url = get_url_sp_gtk() + '/requests'
   data_json = json.dumps(slice_data)
   response = requests.post(url, data=data_json, headers=JSON_CONTENT_HEADER)
   jsonresponse = json.loads(response.text)
-  
+
   return jsonresponse, response.status_code
 
 # POST /requests to TERMINATE Network Slice instance
@@ -131,85 +135,83 @@ def net_serv_terminate(slice_data):
   url = get_url_sp_gtk() + "/requests"
   data_json = json.dumps(slice_data)
   response = requests.post(url, data=data_json, headers=JSON_CONTENT_HEADER)
-  
+
   if (response.status_code == 200) or (response.status_code == 201):
     jsonresponse = json.loads(response.text)
   else:
-    jsonresponse = {'http_code': response.status_code,'message': response.json()}
+    jsonresponse = {'http_code': response.status_code, 'message': response.json()}
   return jsonresponse, response.status_code
 
-  
+
 # GET /requests to pull the information of all requests
 def get_all_nsr():
   url = get_url_sp_gtk() + "/requests"
   response = requests.get(url, headers=JSON_CONTENT_HEADER)
-  
-  if (response.status_code == 200):
-      jsonresponse = json.loads(response.text)
+
+  if response.status_code == 200:
+    jsonresponse = json.loads(response.text)
   else:
-      jsonresponse = {'http_code': response.status_code,'message': response.json()}
+    jsonresponse = {'http_code': response.status_code, 'message': response.json()}
   return jsonresponse
 
 # GET /requests/<request_uuid> to pull the information of a single request id
 def get_nsr(request_uuid):
   url = get_url_sp_gtk() + "/requests/" + str(request_uuid)
   response = requests.get(url, headers=JSON_CONTENT_HEADER)
-  
-  if (response.status_code == 200):
-      jsonresponse = json.loads(response.text)
+
+  if response.status_code == 200:
+    jsonresponse = json.loads(response.text)
   else:
-      jsonresponse = {'http_code': response.status_code,'message': response.json()}
+    jsonresponse = {'http_code': response.status_code, 'message': response.json()}
   return jsonresponse
 
 # GET all NSI items from the repositories
 def get_all_saved_nsi():
-    url = get_url_repositories() + '/records/nsir/ns-instances'
-    response = requests.get(url, headers=JSON_CONTENT_HEADER)
-    jsonresponse = json.loads(response.text)
-    
-    if(response.status_code != 200):
-        jsonresponse = {'http_code': response.status_code,'message': response.json()}
-        LOG.info("Retrieving all Network Slice Instance records FAILED: " + str(jsonresponse))
-    
-    return jsonresponse
+  url = get_url_repositories() + '/records/nsir/ns-instances'
+  response = requests.get(url, headers=JSON_CONTENT_HEADER)
+  jsonresponse = json.loads(response.text)
+
+  if response.status_code != 200:
+    jsonresponse = {'http_code': response.status_code, 'message': response.json()}
+    LOG.info("Retrieving all Network Slice Instance records FAILED: " + str(jsonresponse))
+
+  return jsonresponse
 
 
 # GET specific NSI item from the repositories
-def get_saved_nsi(nsiId):
-    url = get_url_repositories() + '/records/nsir/ns-instances/' + nsiId
-    response = requests.get(url, headers=JSON_CONTENT_HEADER)
+def get_saved_nsi(nsi_id):
+  url = get_url_repositories() + '/records/nsir/ns-instances/' + nsi_id
+  response = requests.get(url, headers=JSON_CONTENT_HEADER)
 
-    if(response.status_code != 200):
-        jsonresponse = {'http_code': response.status_code,'message': response.reason}
-        LOG.info("Retrieving Network Slice Instance record with ID: " +str(nsiId)+ " FAILED.")
-    else:
-        jsonresponse = json.loads(response.text)
+  if response.status_code != 200:
+    jsonresponse = {'http_code': response.status_code, 'message': response.reason}
+    LOG.info("Retrieving Network Slice Instance record with ID: " +str(nsi_id)+ " FAILED.")
+  else:
+    jsonresponse = json.loads(response.text)
 
-    return jsonresponse
+  return jsonresponse
 
 # GET NSI Id from name (from the repositories)
 def get_nsi_id_from_name(name):
-    nsi_list = get_all_saved_nsi()
-    if (nsi_list):
-      for nsi_item in nsi_list:
-        if nsi_item['name'] == name:
-          return nsi_item['uuid']
+  nsi_list = get_all_saved_nsi()
+  if nsi_list:
+    for nsi_item in nsi_list:
+      if nsi_item['name'] == name:
+        return nsi_item['uuid']
 
 
 ################################# NETWORK SLICE DESCRIPTORS #####################################
 
 # GET the specific NST item from the catalogues
-def get_saved_nst(nstId):
-    LOG.info("Requesting Network Slice Template Descriptor with ID: " +str(nstId))
-    url = get_url_catalogues() + '/api/catalogues/v2/nsts/' + nstId
-    response = requests.get(url, headers=JSON_CONTENT_HEADER)
+def get_saved_nst(nst_id):
+  LOG.info("Requesting Network Slice Template Descriptor with ID: " +str(nst_id))
+  url = get_url_catalogues() + '/api/catalogues/v2/nsts/' + nst_id
+  response = requests.get(url, headers=JSON_CONTENT_HEADER)
+  jsonresponse = json.loads(response.text)
+
+  if response.status_code != 200:
     jsonresponse = json.loads(response.text)
-    
-    if (response.status_code != 200):
-        jsonresponse = json.loads(response.text)
-        jsonresponse['http_code'] = response.status_code
-        LOG.info("Retrieveing Network Slice Template Descriptor FAILED: " + str(jsonresponse))
-    
-    return jsonresponse
-    
-  
+    jsonresponse['http_code'] = response.status_code
+    LOG.info("Retrieveing Network Slice Template Descriptor FAILED: " + str(jsonresponse))
+
+  return jsonresponse

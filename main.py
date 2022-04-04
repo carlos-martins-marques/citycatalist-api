@@ -33,19 +33,21 @@
 ## partner consortium (www.5gtango.eu).
 """
 
-import os, logging, json
+import os
+import logging
 
-from tornado import websocket, web, ioloop, httpserver
+import threading
+
+import asyncio
+
+#from tornado import websocket, web, ioloop, httpserver
+from tornado import ioloop, httpserver
 
 from interfaces.nbi import app
 
 from slice_manager.script_ssm_slice import app_ssm
 
 from logger import TangoLogger
-
-import threading
-
-import asyncio
 
 #Log definition to make the slice logs idetified among the other possible 5GTango components.
 LOG = TangoLogger.getLogger(__name__, log_level=logging.DEBUG, log_json=True)
@@ -58,7 +60,7 @@ def app_ssm_thread():
   http_server.listen(4001)
   ioloop.IOLoop.instance().start()
 
-########################################### MAIN SERVER FUNCTION ############################################
+################################# MAIN SERVER FUNCTION ############################################
 if __name__ == '__main__':
 
   # RUN APP SLICE SSM THREAD
