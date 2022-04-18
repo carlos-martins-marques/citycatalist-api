@@ -33,7 +33,6 @@
 ## partner consortium (www.5gtango.eu).
 """
 import logging
-import datetime
 
 from flask import Flask, request, jsonify
 #from tornado import websocket, web, ioloop, httpserver
@@ -54,58 +53,49 @@ app = Flask(__name__)
 API_ROOT = "/api"
 API_VERSION = "/v1"
 API_SLICE = "/slice"
-
-################################ CITYCATALIST API PING ############################################
-# PING function to validate if the citycatalist-api-docker is active
-@app.route('/pings', methods=['GET'])
-def get_pings():
-  ping_response = {'alive_since': '2018-07-18 10:00:00 UTC',
-                   'current_time': str(datetime.datetime.now().isoformat())}
-
-  return jsonify(ping_response), 200
-
+API_5G = "/5g"
 
 
 ################################ CITYCATALIST API Actions #########################################
-# CREATES a Slice
-@app.route(API_ROOT+API_VERSION+API_SLICE, methods=['POST'])
+# CREATES a 5G System
+@app.route(API_ROOT+API_VERSION+API_5G, methods=['POST'])
 def create_slice():
+  LOG.info("Request to create a 5G System with the following information: " + str(request.json))
+
+  # validates the fields with uuids (if they are right UUIDv4 format), 400 Bad request / 201 ok
+  creating_5g = json_validator.validate_create_5g(request.json)
+
+  if creating_5g[1] == 200:
+    creating_5g = worker.create_5g(request.json)
+
+  return jsonify(creating_5g[0]), creating_5g[1]
+
+
+# CREATES a Slice
+@app.route(API_ROOT+API_VERSION+API_SLICE+'/<name>/action/create', methods=['POST'])
+def create_slice_subnet(name):
   LOG.info("Request to create a Slice with the following information: " + str(request.json))
 
   # validates the fields with uuids (if they are right UUIDv4 format), 400 Bad request / 201 ok
   creating_slice = json_validator.validate_create_slice(request.json)
 
   if creating_slice[1] == 200:
-    creating_slice = worker.create_slice(request.json)
+    creating_slice = worker.create_slice(request.json, name)
 
   return jsonify(creating_slice[0]), creating_slice[1]
 
-
-# CREATES a Slice Subnet
-@app.route(API_ROOT+API_VERSION+API_SLICE+'/<name>/action/create', methods=['PUT'])
-def create_slice_subnet(name):
-  LOG.info("Request to create a Slice Subnet with the following information: " + str(request.json))
-
-  # validates the fields with uuids (if they are right UUIDv4 format), 400 Bad request / 201 ok
-  creating_slice_subnet = json_validator.validate_create_slice_subnet(request.json)
-
-  if creating_slice_subnet[1] == 200:
-    creating_slice_subnet = worker.create_slice_subnet(request.json, name)
-
-  return jsonify(creating_slice_subnet[0]), creating_slice_subnet[1]
-
-# Add a Slice Subnet
-@app.route(API_ROOT+API_VERSION+API_SLICE+'/<name>/action/add', methods=['PUT'])
+# Modify a Slice
+@app.route(API_ROOT+API_VERSION+API_SLICE+'/<name>/action/modify', methods=['PUT'])
 def add_slice_subnet(name):
-  LOG.info("Request to add the Slice Subnet according to the following: " + str(request.json))
+  LOG.info("Request to modify the Slice according to the following: " + str(request.json))
 
   # validates the fields with uuids (if they are right UUIDv4 format), 400 Bad request / 202 ok
-  adding_slice_subnet = json_validator.validate_add_slice_subnet(request.json)
+  modify_slice = json_validator.validate_modify_slice(request.json)
 
-  if adding_slice_subnet[1] == 200:
-    adding_slice_subnet = worker.add_slice_subnet(request.json, name)
+  if modify_slice[1] == 200:
+    modify_slice = worker.modify_slice(request.json, name)
 
-  return jsonify(adding_slice_subnet[0]), adding_slice_subnet[1]
+  return jsonify(modify_slice[0]), modify_slice[1]
 
 # Registration
 @app.route(API_ROOT+API_VERSION+API_SLICE+'/<name>/action/registration', methods=['PUT'])
@@ -135,52 +125,52 @@ def handover(name):
 
   return jsonify(_handover[0]), _handover[1]
 
-# REMOVES a Slice Subnet
-@app.route(API_ROOT+API_VERSION+API_SLICE+'/<name>/action/remove', methods=['PUT'])
-def remove_slice_subnet(name):
-  LOG.info("Request to remove the Slice Subnet according to the following: " + str(request.json))
-
-  # validates the fields with uuids (if they are right UUIDv4 format), 400 Bad request / 202 ok
-  removing_slice_subnet = json_validator.validate_remove_slice_subnet(request.json)
-
-  if removing_slice_subnet[1] == 200:
-    removing_slice_subnet = worker.remove_slice_subnet(request.json, name)
-
-  return jsonify(removing_slice_subnet[0]), removing_slice_subnet[1]
-
-# DELETE a Slice Subnet
-@app.route(API_ROOT+API_VERSION+API_SLICE+'/<name>/action/delete', methods=['PUT'])
-def delete_slice_subnet(name):
+# Deregistration
+@app.route(API_ROOT+API_VERSION+API_SLICE+'/<name>/action/deregistration', methods=['PUT'])
+def deregistration(name):
   LOG.info("Request to delete the Slice Subnet according to the following: " + str(request.json))
 
   # validates the fields with uuids (if they are right UUIDv4 format), 400 Bad request / 202 ok
-  deleting_slice_subnet = json_validator.validate_delete_slice_subnet(request.json)
+  _deregistration = json_validator.validate_deregistration(request.json)
 
-  if deleting_slice_subnet[1] == 200:
-    deleting_slice_subnet = worker.delete_slice_subnet(request.json, name)
+  if _deregistration[1] == 200:
+    _deregistration = worker.deregistration(request.json, name)
 
-  return jsonify(deleting_slice_subnet[0]), deleting_slice_subnet[1]
+  return jsonify(_deregistration[0]), _deregistration[1]
 
-# DELETE a Slice
-@app.route(API_ROOT+API_VERSION+API_SLICE, methods=['DELETE'])
-def delete_slice():
-  LOG.info("Request to delete a Slice with the following information: " + str(request.json))
+# REMOVES a Slice
+@app.route(API_ROOT+API_VERSION+API_SLICE+'/<name>/action/remove', methods=['DELETE'])
+def remove_slice(name):
+  LOG.info("Request to remove the Slice according to the following: " + str(request.json))
 
   # validates the fields with uuids (if they are right UUIDv4 format), 400 Bad request / 204 ok
-  deleting_slice = json_validator.validate_delete_slice(request.json)
+  #removing_slice = json_validator.validate_remove_slice(request.json)
 
-  if deleting_slice[1] == 200:
-    deleting_slice = worker.delete_slice(request.json)
+  #if removing_slice[1] == 200:
+  removing_slice = worker.remove_slice(name)
 
-  return jsonify(deleting_slice[0]), deleting_slice[1]
+  return jsonify(removing_slice[0]), removing_slice[1]
 
-# GETS ALL the Slice Status information
-@app.route(API_ROOT+API_VERSION+API_SLICE, methods=['GET'])
-def get_all_slice_status():
+# DELETE a 5G System
+@app.route(API_ROOT+API_VERSION+API_5G+'/<name>', methods=['DELETE'])
+def delete_slice(name):
+  LOG.info("Request to delete a 5G System with the following information: " + str(request.json))
+
+  # validates the fields with uuids (if they are right UUIDv4 format), 400 Bad request / 204 ok
+  #deleting_5g = json_validator.validate_delete_5g(request.json)
+
+  #if deleting_5g[1] == 200:
+  deleting_5g = worker.delete_5g(name)
+
+  return jsonify(deleting_5g[0]), deleting_5g[1]
+
+# GETS s specific 5G System Status
+@app.route(API_ROOT+API_VERSION+API_5G+'/<name>/status', methods=['GET'])
+def get_5g_status(name):
   LOG.info("Request to retreive all the Slice Status.")
-  _all_slice_status = worker.get_all_slice_status()
+  _5g_status = worker.get_5g_status(str(name))
 
-  return jsonify(_all_slice_status[0]), _all_slice_status[1]
+  return jsonify(_5g_status[0]), _5g_status[1]
 
 # GETS a SPECIFIC Slice Status
 @app.route(API_ROOT+API_VERSION+API_SLICE+'/<name>/status', methods=['GET'])

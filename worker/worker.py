@@ -55,6 +55,8 @@ LOG = TangoLogger.getLogger(__name__, log_level=logging.DEBUG, log_json=True)
 TangoLogger.getLogger("citycatalistApi:worker", logging.DEBUG, log_json=True)
 LOG.setLevel(logging.DEBUG)
 
+db_5g = database.FiveGDatabase()
+
 db = database.SliceDatabase()
 
 ################################ THREADs to manage slice requests #################################
@@ -69,12 +71,12 @@ class ThreadNsInstantiate(Thread):
 
   # Creates the json structure to request a NS instantiation.
   def send_instantiation_request(self):
-    LOG.info("Instantiating Slice: " + self.req['sliceName'])
+    LOG.info("Instantiating Slice: " + self.req['5gName'])
 
     # NS requests information
     data = {}
-    data['name'] = self.req['sliceName']
-    data['nst_id'] = self.req['sliceTemplateId']
+    data['name'] = self.req['5gName']
+    data['nst_id'] = self.req['5gTemplateId']
     data['request_type'] = 'CREATE_SLICE'
     if self.req['instantiation_params']:
       data['instantiation_params'] = self.req['instantiation_params']
@@ -88,11 +90,8 @@ class ThreadNsInstantiate(Thread):
 
   def run(self):
 
-    # Store slice subnet / slice
-    if 'slice' in self.req:
-      db.add_slice_subnet(self.req['sliceName'], self.req['slice'])
-    else:
-      db.add_slice(self.req['sliceName'])
+    # Store slice
+    db_5g.add_5g(self.req['5gName'])
 
 
 
@@ -104,19 +103,13 @@ class ThreadNsInstantiate(Thread):
       self.nsi['nsi-status'] = 'ERROR'
       self.nsi['errorLog'] = 'ERROR when instantiating '
       # Change status
-      if 'slice' in self.req:
-        db.update_status_slice_subnet("ERROR", self.req['sliceName'], self.req['slice'])
-      else:
-        db.update_status_slice("ERROR", self.req['sliceName'])
+      db_5g.update_status_5g("ERROR", self.req['5gName'])
 
     else:
-      self.nsi['id'] = self.req['sliceName']
+      self.nsi['id'] = self.req['5gName']
       self.nsi['nsi-status'] = 'INSTANTIATING'
       # Change status
-      if 'slice' in self.req:
-        db.update_status_slice_subnet("CREATING", self.req['sliceName'], self.req['slice'])
-      else:
-        db.update_status_slice("CREATING", self.req['sliceName'])
+      db_5g.update_status_5g("CREATING", self.req['5gName'])
 
 
     # releases mutex for any other thread to acquire it
@@ -129,12 +122,12 @@ class ThreadNsInstantiate(Thread):
       nsi_instantiated = False
       while deployment_timeout > 0:
 
-        if self.nsi['id'] == self.req['sliceName']:
-          uuid = sbi.get_nsi_id_from_name(self.req['sliceName'])
+        if self.nsi['id'] == self.req['5gName']:
+          uuid = sbi.get_nsi_id_from_name(self.req['5gName'])
           if uuid:
             self.nsi['id'] = uuid
 
-        if self.nsi['id'] != self.req['sliceName']:
+        if self.nsi['id'] != self.req['5gName']:
           # Check ns instantiation status
           nsi = sbi.get_saved_nsi(self.nsi['id'])
           if "uuid" in nsi:
@@ -150,10 +143,7 @@ class ThreadNsInstantiate(Thread):
             LOG.info("Network Slice Instantiation request processed for Network Slice with ID: "+
                      str(self.nsi['id']))
             # Change status
-            if 'slice' in self.req:
-              db.update_status_slice_subnet("CREATED", self.req['sliceName'], self.req['slice'])
-            else:
-              db.update_status_slice("CREATED", self.req['sliceName'])
+            db_5g.update_status_5g("CREATED", self.req['5gName'])
             break
 
         time.sleep(15)
@@ -163,20 +153,17 @@ class ThreadNsInstantiate(Thread):
         self.nsi['nsi-status'] = 'ERROR'
         self.nsi['errorLog'] = 'ERROR when terminating with timeout'
         # Change status
-        if 'slice' in self.req:
-          db.update_status_slice_subnet("ERROR", self.req['sliceName'], self.req['slice'])
-        else:
-          db.update_status_slice("ERROR", self.req['sliceName'])
+        db_5g.update_status_5g("ERROR", self.req['5gName'])
 
 
 # SEND NETWORK SLICE (NS) TERMINATION REQUEST
 ## Objctive: send the ns termination request 2 GTK
 ## Params: nsiId (uuid within the incoming request URL)
 class ThreadNsTerminate(Thread):
-  def __init__(self, nsi, nsi_json):
+  def __init__(self, nsi, name):
     Thread.__init__(self)
     self.nsi = nsi
-    self.req = nsi_json
+    self.req = name
 
   def send_termination_requests(self):
     LOG.info("Terminating Slice: ")
@@ -197,10 +184,7 @@ class ThreadNsTerminate(Thread):
     mutex_slice2db_access.acquire()
 
     # Change status
-    if 'slice' in self.req:
-      db.update_status_slice_subnet("DELETING", self.req['sliceName'], self.req['slice'])
-    else:
-      db.update_status_slice("DELETING", self.req['sliceName'])
+    db_5g.update_status_5g("DELETING", self.req)
 
     # sends each of the termination requests
     LOG.info("Termination Step: Terminating Network Slice Instantiation.")
@@ -211,10 +195,7 @@ class ThreadNsTerminate(Thread):
       self.nsi['nsi-status'] = 'ERROR'
       self.nsi['errorLog'] = 'ERROR when terminating '
       # Change status
-      if 'slice' in self.req:
-        db.update_status_slice_subnet("ERROR", self.req['sliceName'], self.req['slice'])
-      else:
-        db.update_status_slice("ERROR", self.req['sliceName'])
+      db_5g.update_status_5g("ERROR", self.req)
 
     # releases mutex for any other thread to acquire it
     mutex_slice2db_access.release()
@@ -239,11 +220,7 @@ class ThreadNsTerminate(Thread):
           LOG.info("Network Slice Termination request processed for Network Slice with ID: "+
                    str(self.nsi['id']))
           # Change status
-          if 'slice' in self.req:
-            db.update_status_slice_subnet("DELETED", self.req['sliceName'], self.req['slice'])
-          else:
-            db.update_status_slice("DELETED", self.req['sliceName'])
-            #db.del_slice(self.req['sliceName'])
+          db_5g.update_status_5g("DELETED", self.req)
           break
 
         time.sleep(15)
@@ -253,19 +230,16 @@ class ThreadNsTerminate(Thread):
         self.nsi['nsi-status'] = 'ERROR'
         self.nsi['errorLog'] = 'ERROR when terminating with timeout'
         # Change status
-        if 'slice' in self.req:
-          db.update_status_slice_subnet("ERROR", self.req['sliceName'], self.req['slice'])
-        else:
-          db.update_status_slice("ERROR", self.req['sliceName'])
+        db_5g.update_status_5g("ERROR", self.req)
 
 
 
 ################################ SLICE CREATION SECTION ##################################
 
 # Does all the process to Create the Slice
-def create_slice(nsi_json):
+def create_5g(nsi_json):
   LOG.info("Check for NstID before instantiating it.")
-  nst_id = nsi_json['sliceTemplateId']
+  nst_id = nsi_json['5gTemplateId']
   catalogue_response = sbi.get_saved_nst(nst_id)
   if catalogue_response.get('nstd'):
     nst_json = catalogue_response['nstd']
@@ -278,13 +252,13 @@ def create_slice(nsi_json):
     return_msg['error'] = "There is NO Slice Template with this uuid in the DDBB."
     return return_msg, 400
 
-  # check if exists another nsir with the same name (sliceName)
+  # check if exists another nsir with the same name (5gName)
   nsirepo_jsonresponse = sbi.get_all_saved_nsi()
   if nsirepo_jsonresponse:
     for nsir_item in nsirepo_jsonresponse:
-      if nsir_item["name"] == nsi_json['sliceName']:
+      if nsir_item["name"] == nsi_json['5gName']:
         return_msg = {}
-        return_msg['error'] = "There is already an slice with this name."
+        return_msg['error'] = "There is already an 5G System with this name."
         return (return_msg, 400)
 
     # Network Slice Placement
@@ -300,11 +274,8 @@ def create_slice(nsi_json):
   thread_ns_instantiation = ThreadNsInstantiate(new_nsi_json[0])
   thread_ns_instantiation.start()
 
-  #return 202 for sliceSubnet and 201 for slice
-  if 'slice' in nsi_json:
-    return ({}, 202)
-  else:
-    return ({}, 201)
+  #return 201
+  return ({}, 201)
 
 # does the NS placement based on the available VIMs resources & the required of each NS.
 def nsi_placement(nsi_json, nst_json):
@@ -344,36 +315,15 @@ def nsi_placement(nsi_json, nst_json):
 
   return nsi_json, 200
 
-# Does all the process to Create the Slice Subnet
-def create_slice_subnet(nsi_json, slice_name):
-
-  # TODO: For not give error when creating the subnet again
-  # If already exist this subnet return 202
-  slice_info = db.get_slice(slice_name)
-  if "sliceSubnetIds" in slice_info:
-    if nsi_json['sliceSubnetName'] in slice_info["sliceSubnetIds"]:
-      return ({}, 202)
-
-  LOG.info("Create Slice Subnet")
-
-  new_nsi_json = {}
-  new_nsi_json['slice'] = slice_name
-  new_nsi_json['sliceName'] = nsi_json['sliceSubnetName']
-  new_nsi_json['sliceTemplateId'] = nsi_json['sliceSubnetTemplateId']
-  if 'location' in nsi_json:
-    new_nsi_json['location'] = nsi_json['location']
-
-  return create_slice(new_nsi_json)
-
 #################################### SLICE DELETION SECTION #######################################
 
-# Does all the process to delete the slice
-def delete_slice(nsi_json):
+# Does all the process to delete the 5G System
+def delete_5g(name):
   #LOG.info("Updating the Network Slice Record for the termination procedure.")
   mutex_slice2db_access.acquire()
   try:
     # Get the uuid form the name provided
-    uuid = sbi.get_nsi_id_from_name(nsi_json['sliceName'])
+    uuid = sbi.get_nsi_id_from_name(name)
     if uuid:
       terminate_nsi = sbi.get_saved_nsi(uuid)
       if terminate_nsi:
@@ -388,14 +338,11 @@ def delete_slice(nsi_json):
 
           # starts the thread to terminate while sending back the response
           LOG.info("Starting the termination procedure.")
-          thread_ns_termination = ThreadNsTerminate(terminate_nsi, nsi_json)
+          thread_ns_termination = ThreadNsTerminate(terminate_nsi, name)
           thread_ns_termination.start()
 
-          #return 202 for sliceSubnet and 204 for slice
-          if 'slice' in nsi_json:
-            terminate_value = 202
-          else:
-            terminate_value = 204
+          #return 204 for slice
+          terminate_value = 204
 
 
         else:
@@ -413,49 +360,57 @@ def delete_slice(nsi_json):
 
   return (terminate_nsi, terminate_value)
 
-# Does all the process to Delete the Slice Subnet
-def delete_slice_subnet(nsi_json, slice_name):
-  LOG.info("Delete Slice Subnet")
+########################################## CREATE SLICE SECTION ##################################
 
-  new_nsi_json = {}
-  new_nsi_json['slice'] = slice_name
-  new_nsi_json['sliceName'] = nsi_json['sliceSubnetName']
-
-  return delete_slice(new_nsi_json)
-
-########################################## ADD SLICE SECTION #######################################
-
-# Does all the process to add the slice to subnet
-def add_slice_subnet(nsi_json, slice_name):
-  LOG.info("Add Slice Subnet")
+# Does all the process to create the slice
+def create_slice(nsi_json, slice_name):
+  LOG.info("Create Slice")
 
   # Change status
-  db.update_status_slice_subnet("ADDING", nsi_json["sliceSubnetName"], slice_name)
-  #TODO Order Configuration
-  dict_message = {"name":"api", "id":"", "action":"add", "slice":slice_name,
-                  "subnetSlice":nsi_json["sliceSubnetName"]}
+  db.add_slice(nsi_json, slice_name)
+  #TODO Order Slice Creation in 5G
+  dict_message = {"name":"api", "id":"", "action":"create", "slice":slice_name,
+                  "info":nsi_json}
   #threading.Thread(target=client_ssm_thread,args=(dict_message,)).start()
   message = client_ssm_thread(dict_message)
-  db.update_status_slice_subnet("ADDED", nsi_json["sliceSubnetName"], slice_name)
+  db.update_status_slice("CREATED", slice_name)
 
-  return ({"message": message}, 202)
+  return ({"message": message}, 201)
+
+########################################## MODIFY SLICE SECTION ##################################
+
+# Does all the process to modify the slice
+def modify_slice(nsi_json, slice_name):
+  LOG.info("Modify Slice")
+
+  # Change status
+  db.update_status_slice("MODIFYING", slice_name)
+  db.mod_slice(slice_name, nsi_json)
+  #TODO Order Slice Mofification in 5G
+  dict_message = {"name":"api", "id":"", "action":"modify", "slice":slice_name,
+                  "info":nsi_json}
+  #threading.Thread(target=client_ssm_thread,args=(dict_message,)).start()
+  message = client_ssm_thread(dict_message)
+  db.update_status_slice("MODIFIED", slice_name)
+
+  return ({"message": message}, 201)
+
 
 ###################################### REMOVE SLICE SECTION #######################################
 
-# Does all the process to remove the slice to subnet
-def remove_slice_subnet(nsi_json, slice_name):
-  LOG.info("Remove Slice Subnet")
+# Does all the process to remove the slice
+def remove_slice(slice_name):
+  LOG.info("Remove Slice")
 
   # Change status
-  db.update_status_slice_subnet("REMOVING", nsi_json["sliceSubnetName"], slice_name)
-  #TODO Order Configuration
-  dict_message = {"name":"api", "id":"", "action":"remove", "slice":slice_name,
-                  "subnetSlice":nsi_json["sliceSubnetName"]}
+  db.update_status_slice("REMOVING", slice_name)
+  #TODO Order Slice Removal in 5G
+  dict_message = {"name":"api", "id":"", "action":"remove", "slice":slice_name}
   #threading.Thread(target=client_ssm_thread,args=(dict_message,)).start()
   message = client_ssm_thread(dict_message)
-  db.update_status_slice_subnet("REMOVED", nsi_json["sliceSubnetName"], slice_name)
+  db.update_status_slice("REMOVED", slice_name)
 
-  return ({"message": message}, 202)
+  return ({"message": message}, 204)
 
 ###################################### Registration SECTION #######################################
 
@@ -464,14 +419,14 @@ def registration(nsi_json, slice_name):
   LOG.info("Registration UE")
 
   # Change status
-  db.update_status_slice_subnet("UNDER_REGISTRATION", nsi_json["sliceSubnet"], slice_name)
+  db.update_status_slice("UNDER_REGISTRATION", slice_name)
   #TODO Order Registration
   dict_message = {"name":"api", "id":"", "action":"registration", "slice":slice_name,
-                  "subnet":nsi_json["sliceSubnet"]}
+                  "info":nsi_json}
   #threading.Thread(target=client_ssm_thread,args=(dict_message,)).start()
   message = client_ssm_thread(dict_message)
   # Change status
-  db.update_status_slice_subnet("FINISHED_REGISTRATION", nsi_json["sliceSubnet"], slice_name)
+  db.update_status_slice("FINISHED_REGISTRATION", slice_name)
   return ({"message": message}, 202)
 
 ########################################## HANDOVER SECTION #######################################
@@ -481,16 +436,14 @@ def handover(nsi_json, slice_name):
   LOG.info("Handover UE")
 
   # Change status
-  db.update_status_slice_subnet("UNDER_HANDOVER_DISABLE", nsi_json["sliceSubnetSrc"], slice_name)
-  db.update_status_slice_subnet("UNDER_HANDOVER_ENABLE", nsi_json["sliceSubnetDst"], slice_name)
+  db.update_status_slice("UNDER_HANDOVER", slice_name)
   #TODO Order Handover
   dict_message = {"name":"api", "id":"", "action":"handover", "slice":slice_name,
-                  "subnetSrc":nsi_json["sliceSubnetSrc"], "subnetDst":nsi_json["sliceSubnetDst"]}
+                  "info":nsi_json}
   #threading.Thread(target=client_ssm_thread,args=(dict_message,)).start()
   message = client_ssm_thread(dict_message)
   # Change status
-  db.update_status_slice_subnet("FINISHED_HANDOVER_DISABLE", nsi_json["sliceSubnetSrc"], slice_name)
-  db.update_status_slice_subnet("FINISHED_HANDOVER_ENABLE", nsi_json["sliceSubnetDst"], slice_name)
+  db.update_status_slice("FINISHED_HANDOVER", slice_name)
   return ({"message": message}, 202)
 
 # Status options
@@ -512,7 +465,96 @@ def handover(nsi_json, slice_name):
 	
 } """ # pylint: disable=pointless-string-statement
 
+###################################### Deregistration SECTION ######################################
+
+# Does all the process to deregistration the UE
+def deregistration(nsi_json, slice_name):
+  LOG.info("Deregistration UE")
+
+  # Change status
+  db.update_status_slice("UNDER_DEREGISTRATION", slice_name)
+  #TODO Order Deregistration
+  dict_message = {"name":"api", "id":"", "action":"deregistration", "slice":slice_name,
+                  "info":nsi_json}
+  #threading.Thread(target=client_ssm_thread,args=(dict_message,)).start()
+  message = client_ssm_thread(dict_message)
+  # Change status
+  db.update_status_slice("FINISHED_DEREGISTRATION", slice_name)
+  return ({"message": message}, 202)
+
 ########################################## STATUS SECTION #######################################
+
+# Does all the process to get the 5G System status
+"""
+Database model
+{
+  "<5gName>": {
+    "status": "<status>"
+  }
+}
+
+Return
+{
+  "5gName": "<5gName>",
+  "status": "<status>"
+}
+"""
+
+def get_5g_status(slice_name):
+  LOG.info("Get 5G System Status")
+  slice_status = {}
+
+  # Check if slice exists
+  all_slice_info = db.get_all_slices()
+  if not slice_name in all_slice_info:
+    return (slice_status, 404)
+
+  # Get status for a specific slice
+  slice_info = db.get_slice(slice_name)
+
+  if slice_info:
+    slice_status["5gName"] = slice_name
+    slice_status["status"] = slice_info["status"]
+
+  return (slice_status, 200)
+
+# Does all the process to get the status of all 5G Systems
+"""
+Database model
+{
+  "<5gName>": {
+    "status": "<status>"
+  }
+}
+
+Return
+[
+  {
+    "5gName": "<5gName>",
+    "status": "<status>",
+  },
+  ...
+]
+"""
+
+def get_all_5g_status():
+  LOG.info("Get All 5G System Status")
+
+  # Get status for all 5G System
+  all_slice_status = []
+  all_slice_info = db_5g.get_all_5g()
+  for slice_name in all_slice_info:
+
+    slice_status = {}
+    slice_info = all_slice_info[slice_name]
+
+    slice_status["5gName"] = slice_name
+    slice_status["status"] = slice_info["status"]
+
+    all_slice_status.append(slice_status)
+
+  return (all_slice_status, 200)
+
 
 # Does all the process to get the status
 """
@@ -520,29 +562,33 @@ Database model
 {
   "<sliceName>": {
     "status": "<status>",
-    "sliceSubnetIds": {
-      "<sliceSubnetName>": {
-        "status": "<status>"
-      }
+    "sliceName": "<sliceName>",
+    "5gName": "<5gName>",
+    "ueIds": ["<ueIds>"],
+    "gnbIds": ["<gnbIds>"],
+    "requirements: {
+      "bandwidth": "<bandwidth>",
+      "delay":"<delay>", 
+      "priority":"<priority>",
+      "reliability":"< reliability>"
     }
   }
 }
 
+
 Return
 {
-  "sliceName": "<sliceName>",
   "status": "<status>",
-  "sliceSubnetIds": [
-    {
-      "sliceSubnetName": "<sliceSubnetName>",
-      "status": "<status>"
-    },
-    {
-      "sliceSubnetName": "<sliceSubnetName>",
-      "status": "<status>"
-    },
-    ...
-  ]
+  "sliceName": "<sliceName>",
+  "5gName": "<5gName>",
+  "ueIds": ["<ueIds>"],
+  "gnbIds": ["<gnbIds>"],
+  "requirements: {
+    "bandwidth": "<bandwidth>",
+    "delay":"<delay>", 
+    "priority":"<priority>",
+    "reliability":"< reliability>"
+  }
 }
 """
 
@@ -559,15 +605,7 @@ def get_slice_status(slice_name):
   slice_info = db.get_slice(slice_name)
 
   if slice_info:
-    slice_status["sliceName"] = slice_name
-    slice_status["status"] = slice_info["status"]
-    if "sliceSubnetIds" in slice_info:
-      slice_status["sliceSubnetIds"] = []
-      for slice_subnet_name in slice_info["sliceSubnetIds"]:
-        slice_subnet_info = {}
-        slice_subnet_info["sliceSubnetName"] = slice_subnet_name
-        slice_subnet_info["status"] = slice_info["sliceSubnetIds"][slice_subnet_name]["status"]
-        slice_status["sliceSubnetIds"].append(slice_subnet_info)
+    slice_status = slice_info
 
   return (slice_status, 200)
 
@@ -577,10 +615,15 @@ Database model
 {
   "<sliceName>": {
     "status": "<status>",
-    "sliceSubnetIds": {
-      "<sliceSubnetName>": {
-        "status": "<status>"
-      }
+    "sliceName": "<sliceName>",
+    "5gName": "<5gName>",
+    "ueIds": ["<ueIds>"],
+    "gnbIds": ["<gnbIds>"],
+    "requirements: {
+      "bandwidth": "<bandwidth>",
+      "delay":"<delay>", 
+      "priority":"<priority>",
+      "reliability":"< reliability>"
     }
   }
 }
@@ -588,18 +631,17 @@ Database model
 Return
 [
   {
-    "sliceName": "<sliceName>",
     "status": "<status>",
-    "sliceSubnetIds": [
-      {
-        "sliceSubnetName": "<sliceSubnetName>",
-        "status": "<status>"
-      },
-      {
-        "sliceSubnetName": "<sliceSubnetName>",
-        "status": "<status>"
-      }
-    ]
+    "sliceName": "<sliceName>",
+    "5gName": "<5gName>",
+    "ueIds": ["<ueIds>"],
+    "gnbIds": ["<gnbIds>"],
+    "requirements: {
+      "bandwidth": "<bandwidth>",
+      "delay":"<delay>", 
+      "priority":"<priority>",
+      "reliability":"< reliability>"
+    }
   },
   ...
 ]
@@ -615,16 +657,7 @@ def get_all_slice_status():
 
     slice_status = {}
     slice_info = all_slice_info[slice_name]
-
-    slice_status["sliceName"] = slice_name
-    slice_status["status"] = slice_info["status"]
-    if "sliceSubnetIds" in slice_info:
-      slice_status["sliceSubnetIds"] = []
-      for slice_subnet_name in slice_info["sliceSubnetIds"]:
-        slice_subnet_info = {}
-        slice_subnet_info["sliceSubnetName"] = slice_subnet_name
-        slice_subnet_info["status"] = slice_info["sliceSubnetIds"][slice_subnet_name]["status"]
-        slice_status["sliceSubnetIds"].append(slice_subnet_info)
+    slice_status = slice_info
 
     all_slice_status.append(slice_status)
 

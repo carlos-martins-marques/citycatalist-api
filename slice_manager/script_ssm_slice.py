@@ -16,19 +16,14 @@ from tornado import websocket, web
 LOG = logging.getLogger(__name__)
 LOG.setLevel(logging.DEBUG)
 
-names = ['access', 'core', 'ue']
-actions = ['registry', 'start', 'reconfig', 'registration', 'handover', 'add', 'remove']
-DATA_A = {}
-DATA_C = {}
-DATA_U = {}
+names = ['core']
+actions = ['registry', 'start', 'reconfig', 'create', 'modify', 'remove', 'registration',
+           'handover', 'deregistration']
+
 SSM_ID = {}
-ACCESS_SSM = 2
-SSM = 0
-MAX_SSM = 2 + ACCESS_SSM
+
 lock = asyncio.Lock()
 liveWebSockets = {}
-ueWebSockets = {}
-UE_ID = 2
 
 def get_status(service_id):
   status = ''
@@ -62,22 +57,12 @@ class WSHandler(websocket.WebSocketHandler): #pylint: disable=abstract-method
       if self == value:
         liveWebSockets.pop(key)
         break
-    for key, value in ueWebSockets.items():
-      if self == value:
-        ueWebSockets.pop(key)
-        break
+
   def check_origin(self, origin):
     return True
 
 
   async def on_message(self, message): #pylint: disable=invalid-overridden-method
-    global DATA_A  #pylint: disable=global-statement
-    global DATA_C  #pylint: disable=global-statement
-    global DATA_U  #pylint: disable=global-statement
-    global SSM     #pylint: disable=global-statement
-    global SSM_ID  #pylint: disable=global-statement
-    global UE_ID   #pylint: disable=global-statement
-    global MAX_SSM #pylint: disable=global-statement
     LOG.info('message received:  %s' % message)
 
     message_dict = json.loads(message)
@@ -92,10 +77,8 @@ class WSHandler(websocket.WebSocketHandler): #pylint: disable=abstract-method
       sfuuid = message_dict['sfuuid']
       SSM_ID[_id] = sfuuid
 
-      liveWebSockets[sfuuid] = self
-
-      if name == names[2]:
-        ueWebSockets[sfuuid] = self
+      if name == names[0]:
+        liveWebSockets[sfuuid] = self
 
       # only for test case
       #toSend = message_dict
@@ -106,95 +89,67 @@ class WSHandler(websocket.WebSocketHandler): #pylint: disable=abstract-method
     # start
     elif action == actions[1]:
       sfuuid = SSM_ID[_id]
-      data_m = message_dict['data']
 
-      if name == names[0]:
-        async with lock:
-          order = len(DATA_A) + 1
-          for vnf in data_m:
-            for interface in vnf["ifdata"]:
-              interface.update({'id':_id})
-              if vnf["name"] in ["vnf-open5gcorer5-gnb", "vnf-open5gcorer5-upfe",
-                                 "vnf-open5gcorer5-igwe"]:
-                interface["ifid"] = interface["ifid"][0:5].replace("1", str(order)) + \
-                                    interface["ifid"][5:]
+    # create
+    elif action == actions[3]:
+      #TODO
+      for sfuuid in liveWebSockets:
 
-          DATA_A[sfuuid] = data_m
-      elif name == names[1]:
-        for vnf in data_m:
-          for interface in vnf["ifdata"]:
-            interface.update({'id':_id})
-        DATA_C[sfuuid] = data_m
+        to_send = {"name": "core", "id": sfuuid, "action": action,
+                   "info": message_dict['info']}
+        to_send_json = json.dumps(to_send)
+        LOG.info(name + ": send new message to SSM" + to_send_json)
 
-      else:
-        async with lock:
-          order = len(DATA_U) + 1
-          for vnf in data_m:
-            for interface in vnf["ifdata"]:
-              interface.update({'id':_id})
-              if vnf["name"] in ["vnf-open5gcorer5-ue"]:
-                interface["ifid"] = interface["ifid"][0:5].replace("1", str(order)) + \
-                                    interface["ifid"][5:]
-          DATA_U[sfuuid] = data_m
+        liveWebSockets[sfuuid].write_message(to_send_json)
 
-      # Wait for have the start of all ssm to reconfig
-      while (len(DATA_A) + len(DATA_C) + len(DATA_U)) < MAX_SSM:
-        LOG.info(name + "-" + sfuuid + ": wait start for others ssm")
-        await asyncio.sleep(1)
-
-      # Wait for the service be ready
-      for sv_id in DATA_A:
-        while True:
-          status = get_status(sv_id)
-          if status == "normal operation":
-            break
-          LOG.info(name + "-" + sfuuid + ": wait for service access-" + sv_id + " be ready")
-          await asyncio.sleep(5)
-
-      for sv_id in DATA_C:
-        while True:
-          status = get_status(sv_id)
-          if status == "normal operation":
-            break
-          LOG.info(name + "-" + sfuuid + ": wait for service core-" + sv_id + " be ready")
-          await asyncio.sleep(5)
-
-      for sv_id in DATA_U:
-        while True:
-          status = get_status(sv_id)
-          if status == "normal operation":
-            break
-          LOG.info(name + "-" + sfuuid + ": wait for service ue-" + sv_id + " be ready")
-          await asyncio.sleep(5)
-
-      LOG.info(name + "-" + sfuuid + ": wait 60 seconds after all services ready")
-      await asyncio.sleep(60)
-
-      data_to_send = []
-      for sv_id in DATA_A:
-        data_to_send += DATA_A[sv_id]
-      for sv_id in DATA_C:
-        data_to_send += DATA_C[sv_id]
-      for sv_id in DATA_U:
-        data_to_send += DATA_U[sv_id]
-      to_send = {"name": name, "id": _id, "action": actions[2],
-                 "data": data_to_send}
-      LOG.info(name + "-" + sfuuid + ": tosend = " + str(to_send))
+      to_send = {"name": name, "id": _id, "action": action,
+                 "message": "Create OK"}
+      LOG.info(name + ": to_send = " + str(to_send))
       to_send_json = json.dumps(to_send)
-      LOG.info(name + "-" + sfuuid + ": send new message " + to_send_json)
+      LOG.info(name + ": send new message " + to_send_json)
       self.write_message(to_send_json)
-      SSM += 1
-      if SSM == MAX_SSM:
-        SSM = 0
-        DATA_A = {}
-        DATA_C = {}
-        DATA_U = {}
-        SSM_ID = {}
-        UE_ID = 2
+
+    # modify
+    elif action == actions[4]:
+      #TODO
+      for sfuuid in liveWebSockets:
+
+        to_send = {"name": "core", "id": sfuuid, "action": action,
+                   "info": message_dict['info']}
+        to_send_json = json.dumps(to_send)
+        LOG.info(name + ": send new message to SSM" + to_send_json)
+
+        liveWebSockets[sfuuid].write_message(to_send_json)
+
+      to_send = {"name": name, "id": _id, "action": action,
+                 "message": "Modify OK"}
+      LOG.info(name + ": to_send = " + str(to_send))
+      to_send_json = json.dumps(to_send)
+      LOG.info(name + ": send new message " + to_send_json)
+      self.write_message(to_send_json)
+
+    # remove
+    elif action == actions[5]:
+      #TODO
+      for sfuuid in liveWebSockets:
+
+        to_send = {"name": "core", "id": sfuuid, "action": action,
+                   "info": message_dict['info']}
+        to_send_json = json.dumps(to_send)
+        LOG.info(name + ": send new message to SSM" + to_send_json)
+
+        liveWebSockets[sfuuid].write_message(to_send_json)
+
+      to_send = {"name": name, "id": _id, "action": action,
+                 "message": "Remove OK"}
+      LOG.info(name + ": to_send = " + str(to_send))
+      to_send_json = json.dumps(to_send)
+      LOG.info(name + ": send new message " + to_send_json)
+      self.write_message(to_send_json)
 
     # registration
-    elif action == actions[3]:
-      #TODO script to activate proxy arp.
+    elif action == actions[6]:
+      #TO#DO script to activate proxy arp.
       # url:193.136.92.183 u:altice p:ecitla
       #/bin/bash /opt/stack/script_arp_proxy.sh
       #client = paramiko.SSHClient()
@@ -209,15 +164,14 @@ class WSHandler(websocket.WebSocketHandler): #pylint: disable=abstract-method
       #client.close()
 
       #TODO
-      for sfuuid in ueWebSockets:
+      for sfuuid in liveWebSockets:
 
-        to_send = {"name": "ue", "id": sfuuid, "action": "registration"}
+        to_send = {"name": "core", "id": sfuuid, "action": action,
+                   "info": message_dict['info']}
         to_send_json = json.dumps(to_send)
-        LOG.info(name + ": send new message to UE SSM" + to_send_json)
+        LOG.info(name + ": send new message to SSM" + to_send_json)
 
-        ueWebSockets[sfuuid].write_message(to_send_json)
-      # Get the sfuuid of UE and send the message
-      #liveWebSockets[sfuuid].write_message(message)
+        liveWebSockets[sfuuid].write_message(to_send_json)
 
       to_send = {"name": name, "id": _id, "action": action,
                  "message": "Registration OK"}
@@ -227,22 +181,16 @@ class WSHandler(websocket.WebSocketHandler): #pylint: disable=abstract-method
       self.write_message(to_send_json)
 
     # handover
-    elif action == actions[4]:
+    elif action == actions[7]:
       #TODO
-      for sfuuid in ueWebSockets:
+      for sfuuid in liveWebSockets:
 
-        to_send = {"name": "ue", "id": sfuuid, "action": "handover",
-                   "edge": str(UE_ID)}
+        to_send = {"name": "core", "id": sfuuid, "action": action,
+                   "info": message_dict['info']}
         to_send_json = json.dumps(to_send)
         LOG.info(name + ": send new message to UE SSM" + to_send_json)
 
-        ueWebSockets[sfuuid].write_message(to_send_json)
-      # Get the sfuuid of UE and send the message
-      #liveWebSockets[sfuuid].write_message(message)
-      if UE_ID == 2:
-        UE_ID = 1
-      else:
-        UE_ID = 2
+        liveWebSockets[sfuuid].write_message(to_send_json)
 
       # Estimate time for the handover be applied.
       time.sleep(2)
@@ -254,25 +202,20 @@ class WSHandler(websocket.WebSocketHandler): #pylint: disable=abstract-method
       LOG.info(name + ": send new message " + to_send_json)
       self.write_message(to_send_json)
 
-    # add
-    elif action == actions[5]:
+    # deregistration
+    elif action == actions[8]:
       #TODO
-      # Get the sfuuid of service and send the message
-      #liveWebSockets[sfuuid].write_message(message)
-      to_send = {"name": name, "id": _id, "action": action,
-                 "message": "Add OK"}
-      LOG.info(name + ": to_send = " + str(to_send))
-      to_send_json = json.dumps(to_send)
-      LOG.info(name + ": send new message " + to_send_json)
-      self.write_message(to_send_json)
+      for sfuuid in liveWebSockets:
 
-    # remove
-    elif action == actions[6]:
-      #TODO
-      # Get the sfuuid of service and send the message
-      #liveWebSockets[sfuuid].write_message(message)
+        to_send = {"name": "core", "id": sfuuid, "action": action,
+                   "info": message_dict['info']}
+        to_send_json = json.dumps(to_send)
+        LOG.info(name + ": send new message to SSM" + to_send_json)
+
+        liveWebSockets[sfuuid].write_message(to_send_json)
+
       to_send = {"name": name, "id": _id, "action": action,
-                 "message": "Remove OK"}
+                 "message": "Deregistration OK"}
       LOG.info(name + ": to_send = " + str(to_send))
       to_send_json = json.dumps(to_send)
       LOG.info(name + ": send new message " + to_send_json)

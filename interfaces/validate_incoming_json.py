@@ -53,9 +53,9 @@ def is_valid_uuid(uuid_to_test, version=4):
     return False
   return str(uuid_obj) == uuid_to_test
 
-# Validates the incoming json to create Slice.
-def validate_create_slice(json_data):
-  if 'sliceName' in json_data and 'sliceTemplateId' in json_data:
+# Validates the incoming json to create 5G System.
+def validate_create_5g(json_data):
+  if '5gName' in json_data and '5gTemplateId' in json_data:
     returnData["missing_field"] = "Everything is OK!!"
     return (returnData, 200)
   else:
@@ -63,73 +63,54 @@ def validate_create_slice(json_data):
     LOG.info('FormValidator NBI_Error: ' + str(returnData))
     return (returnData, 400)
 
-# Validates the incoming json to create Slice Subnet.
-def validate_create_slice_subnet(json_data):
-  if 'sliceSubnetName' in json_data and 'sliceSubnetTemplateId' in json_data:
+# Validates the incoming json to create Slice.
+def validate_create_slice(json_data):
+  if '5gName' in json_data and 'sliceName' in json_data and 'ueIds' in json_data \
+  and 'gnbIds' in json_data and 'requirements' in json_data:
     returnData["missing_field"] = "Everything is OK!!"
     return (returnData, 200)
   else:
     returnData["missing_field"] = "Check if you request has a \
-      sliceSubnetTemplateId and a sliceSubnetName."
+      5gName and a sliceName and a ueIds and a gnbIds and requirements."
     LOG.info('FormValidator NBI_Error: ' + str(returnData))
     return (returnData, 400)
 
-# Validates the incoming json to add Slice Subnet.
-def validate_add_slice_subnet(json_data):
-  if 'sliceSubnetName' in json_data:
+# Validates the incoming json to modify Slice.
+def validate_modify_slice(json_data):
+  if 'ueIds' in json_data and 'gnbIds' in json_data:
     returnData["missing_field"] = "Everything is OK!!"
     return (returnData, 200)
   else:
-    returnData["missing_field"] = "Check if you request has a sliceSubnetName."
+    returnData["missing_field"] = "Check if you request has a ueIds and a gnbIds."
     LOG.info('FormValidator NBI_Error: ' + str(returnData))
     return (returnData, 400)
 
 # Validates the registration.
 def validate_registration(json_data):
-  if 'sliceSubnet' in json_data:
+  if 'ueId' in json_data and 'gnbId' in json_data:
     returnData["missing_field"] = "Everything is OK!!"
     return (returnData, 200)
   else:
-    returnData["missing_field"] = "Check if you request has a sliceSubnet."
+    returnData["missing_field"] = "Check if you request has a ueId and a gnbId."
     LOG.info('FormValidator NBI_Error: ' + str(returnData))
     return (returnData, 400)
 
 # Validates the handover.
 def validate_handover(json_data):
-  if 'sliceSubnetSrc' in json_data and 'sliceSubnetDst' in json_data:
+  if 'ueId' in json_data and 'gnbId' in json_data:
     returnData["missing_field"] = "Everything is OK!!"
     return (returnData, 200)
   else:
-    returnData["missing_field"] = "Check if you request has a sliceSubnetSrc and a sliceSubnetDst."
+    returnData["missing_field"] = "Check if you request has a ueId and a gnbId."
     LOG.info('FormValidator NBI_Error: ' + str(returnData))
     return (returnData, 400)
 
-# Validates the incoming json to remove Slice Subnet.
-def validate_remove_slice_subnet(json_data):
-  if 'sliceSubnetName' in json_data:
+# Validates the deregistration.
+def validate_deregistration(json_data):
+  if 'ueId' in json_data:
     returnData["missing_field"] = "Everything is OK!!"
     return (returnData, 200)
   else:
-    returnData["missing_field"] = "Check if you request has a sliceSubnetName."
-    LOG.info('FormValidator NBI_Error: ' + str(returnData))
-    return (returnData, 400)
-
-# Validates the incoming json to delete Slice Subnet.
-def validate_delete_slice_subnet(json_data):
-  if 'sliceSubnetName' in json_data:
-    returnData["missing_field"] = "Everything is OK!!"
-    return (returnData, 200)
-  else:
-    returnData["missing_field"] = "Check if you request has a sliceSubnetName."
-    LOG.info('FormValidator NBI_Error: ' + str(returnData))
-    return (returnData, 400)
-
-# Validates the incoming json to delete Slice.
-def validate_delete_slice(json_data):
-  if 'sliceName' in json_data:
-    returnData["missing_field"] = "Everything is OK!!"
-    return (returnData, 200)
-  else:
-    returnData["missing_field"] = "Check if you request has a sliceName."
+    returnData["missing_field"] = "Check if you request has a ueId."
     LOG.info('FormValidator NBI_Error: ' + str(returnData))
     return (returnData, 400)
