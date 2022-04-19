@@ -367,7 +367,7 @@ def create_slice(nsi_json, slice_name):
   LOG.info("Create Slice")
 
   # Change status
-  db.add_slice(nsi_json, slice_name)
+  db.add_slice(slice_name, nsi_json)
   #TODO Order Slice Creation in 5G
   dict_message = {"name":"api", "id":"", "action":"create", "slice":slice_name,
                   "info":nsi_json}
