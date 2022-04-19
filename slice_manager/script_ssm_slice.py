@@ -11,9 +11,11 @@ import requests
 #from tornado import websocket, web, ioloop, httpserver
 from tornado import websocket, web
 #import paramiko # type: ignore # pylint: disable=import-error
+from logger import TangoLogger
 
-
-LOG = logging.getLogger(__name__)
+#Log definition to make the slice logs idetified among the other possible 5GTango components.
+LOG = TangoLogger.getLogger(__name__, log_level=logging.DEBUG, log_json=True)
+TangoLogger.getLogger("citycatalistApi:server_ws", logging.DEBUG, log_json=True)
 LOG.setLevel(logging.DEBUG)
 
 names = ['core']

@@ -168,5 +168,5 @@ class TangoJsonLogHandler(logging.StreamHandler):
     """
     We go the simple way here: Just print the JSON :-)
     """
-    print(json.dumps(self._to_tango_dict(record)))
+    print(json.dumps(self._to_tango_dict(record), sort_keys=True))
     sys.stdout.flush()
