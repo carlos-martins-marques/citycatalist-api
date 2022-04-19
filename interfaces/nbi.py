@@ -59,7 +59,7 @@ API_5G = "/5g"
 ################################ CITYCATALIST API Actions #########################################
 # CREATES a 5G System
 @app.route(API_ROOT+API_VERSION+API_5G, methods=['POST'])
-def create_slice():
+def create_5g():
   LOG.info("Request to create a 5G System with the following information: " + str(request.json))
 
   # validates the fields with uuids (if they are right UUIDv4 format), 400 Bad request / 201 ok
@@ -73,7 +73,7 @@ def create_slice():
 
 # CREATES a Slice
 @app.route(API_ROOT+API_VERSION+API_SLICE+'/<name>/action/create', methods=['POST'])
-def create_slice_subnet(name):
+def create_slice(name):
   LOG.info("Request to create a Slice with the following information: " + str(request.json))
 
   # validates the fields with uuids (if they are right UUIDv4 format), 400 Bad request / 201 ok
@@ -86,7 +86,7 @@ def create_slice_subnet(name):
 
 # Modify a Slice
 @app.route(API_ROOT+API_VERSION+API_SLICE+'/<name>/action/modify', methods=['PUT'])
-def add_slice_subnet(name):
+def mod_slice(name):
   LOG.info("Request to modify the Slice according to the following: " + str(request.json))
 
   # validates the fields with uuids (if they are right UUIDv4 format), 400 Bad request / 202 ok
@@ -153,7 +153,7 @@ def remove_slice(name):
 
 # DELETE a 5G System
 @app.route(API_ROOT+API_VERSION+API_5G+'/<name>', methods=['DELETE'])
-def delete_slice(name):
+def delete_5g(name):
   LOG.info("Request to delete a 5G System with the following information: " + str(request.json))
 
   # validates the fields with uuids (if they are right UUIDv4 format), 400 Bad request / 204 ok

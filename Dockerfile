@@ -54,7 +54,9 @@ ADD . /citycatalist_api
 WORKDIR /citycatalist_api
 
 #runing the python script to prepare the docker environment
-RUN apt install gcc
+RUN apt update
+RUN apt -y install gcc
+RUN apt -y install libffi-dev
 RUN pip3 install paramiko
 RUN python setup.py install
 
