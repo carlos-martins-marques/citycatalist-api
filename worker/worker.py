@@ -510,7 +510,7 @@ def get_5g_status(slice_name):
     return (slice_status, 404)
 
   # Get status for a specific slice
-  slice_info = db.get_slice(slice_name)
+  slice_info = db_5g.get_all_5g()
 
   if slice_info:
     slice_status["5gName"] = slice_name

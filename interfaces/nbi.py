@@ -167,7 +167,7 @@ def delete_5g(name):
 # GETS s specific 5G System Status
 @app.route(API_ROOT+API_VERSION+API_5G+'/<name>/status', methods=['GET'])
 def get_5g_status(name):
-  LOG.info("Request to retreive all the Slice Status.")
+  LOG.info("Request to retreive all 5G System Status.")
   _5g_status = worker.get_5g_status(str(name))
 
   return jsonify(_5g_status[0]), _5g_status[1]
