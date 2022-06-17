@@ -366,11 +366,22 @@ def delete_5g(name):
 def create_slice(nsi_json, slice_name):
   LOG.info("Create Slice")
 
+  #TODO Order Slice Creation in 5G
+  # choose the best slice id based in requirements
+  if nsi_json["requirements"].bandwidth < 10:
+    slice_id="3"
+  elif nsi_json["requirements"].bandwidth < 85:
+    slice_id="4"
+  elif nsi_json["requirements"].bandwidth < 110:
+    slice_id="1"
+  else:
+    slice_id="2"
+
+  nsi_json["sliceType"]=slice_id
   # Change status
   db.add_slice(slice_name, nsi_json)
-  #TODO Order Slice Creation in 5G
-  dict_message = {"name":"api", "id":"", "action":"create", "slice":slice_name,
-                  "info":nsi_json}
+  dict_message = {"name":"api", "id":"", "action":"create",
+                  "info": {"sliceType":nsi_json["sliceType"],"ueIds":nsi_json["ueIds"]}}
   #threading.Thread(target=client_ssm_thread,args=(dict_message,)).start()
   message = client_ssm_thread(dict_message)
   db.update_status_slice("CREATED", slice_name)
@@ -387,13 +398,34 @@ def modify_slice(nsi_json, slice_name):
   db.update_status_slice("MODIFYING", slice_name)
   db.mod_slice(slice_name, nsi_json)
   #TODO Order Slice Mofification in 5G
-  dict_message = {"name":"api", "id":"", "action":"modify", "slice":slice_name,
-                  "info":nsi_json}
+  # see the diferences add new users and remove old users
+  old_ue_ids = db.get_slice(slice_name)["ueIds"]
+  rm_ue_ids = []
+  add_ue_ids = []
+  for ue_id in old_ue_ids:
+    if ue_id not in nsi_json["ueIds"]:
+      rm_ue_ids.append(ue_id)
+
+  for ue_id in nsi_json["ueIds"]:
+    if ue_id not in old_ue_ids:
+      add_ue_ids.append(ue_id)
+
+  #dict_message = {"name":"api", "id":"", "action":"modify", "slice":slice_name,
+  #                "info":nsi_json}
   #threading.Thread(target=client_ssm_thread,args=(dict_message,)).start()
-  message = client_ssm_thread(dict_message)
+  message=""
+  if add_ue_ids:
+    dict_message_c = {"name":"api", "id":"", "action":"create",
+                  "info": {"sliceType":nsi_json["sliceType"],"ueIds":add_ue_ids}}
+    message = client_ssm_thread(dict_message_c)
+  if rm_ue_ids:
+    dict_message_r = {"name":"api", "id":"", "action":"remove",
+                  "info": {"sliceType":nsi_json["sliceType"],"ueIds":rm_ue_ids}}
+    message = client_ssm_thread(dict_message_r)
   db.update_status_slice("MODIFIED", slice_name)
 
   return ({"message": message}, 201)
+
 
 
 ###################################### REMOVE SLICE SECTION #######################################
@@ -404,8 +436,10 @@ def remove_slice(slice_name):
 
   # Change status
   db.update_status_slice("REMOVING", slice_name)
+  nsi_json=db.get_slice(slice_name)
   #TODO Order Slice Removal in 5G
-  dict_message = {"name":"api", "id":"", "action":"remove", "slice":slice_name}
+  dict_message = {"name":"api", "id":"", "action":"remove",
+                  "info": {"sliceType":nsi_json["sliceType"],"ueIds":nsi_json["ueIds"]}}
   #threading.Thread(target=client_ssm_thread,args=(dict_message,)).start()
   message = client_ssm_thread(dict_message)
   db.update_status_slice("REMOVED", slice_name)
@@ -420,8 +454,8 @@ def registration(nsi_json, slice_name):
 
   # Change status
   db.update_status_slice("UNDER_REGISTRATION", slice_name)
-  #TODO Order Registration
-  dict_message = {"name":"api", "id":"", "action":"registration", "slice":slice_name,
+  # Order Registration
+  dict_message = {"name":"api", "id":"", "action":"registration",
                   "info":nsi_json}
   #threading.Thread(target=client_ssm_thread,args=(dict_message,)).start()
   message = client_ssm_thread(dict_message)
@@ -437,8 +471,8 @@ def handover(nsi_json, slice_name):
 
   # Change status
   db.update_status_slice("UNDER_HANDOVER", slice_name)
-  #TODO Order Handover
-  dict_message = {"name":"api", "id":"", "action":"handover", "slice":slice_name,
+  # Order Handover
+  dict_message = {"name":"api", "id":"", "action":"handover",
                   "info":nsi_json}
   #threading.Thread(target=client_ssm_thread,args=(dict_message,)).start()
   message = client_ssm_thread(dict_message)
@@ -473,8 +507,8 @@ def deregistration(nsi_json, slice_name):
 
   # Change status
   db.update_status_slice("UNDER_DEREGISTRATION", slice_name)
-  #TODO Order Deregistration
-  dict_message = {"name":"api", "id":"", "action":"deregistration", "slice":slice_name,
+  # Order Deregistration
+  dict_message = {"name":"api", "id":"", "action":"deregistration",
                   "info":nsi_json}
   #threading.Thread(target=client_ssm_thread,args=(dict_message,)).start()
   message = client_ssm_thread(dict_message)
