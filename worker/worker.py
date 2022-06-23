@@ -368,11 +368,11 @@ def create_slice(nsi_json, slice_name):
 
   #TODO Order Slice Creation in 5G
   # choose the best slice id based in re"quirements
-  if nsi_json["requirements"]["bandwidth"] < 10:
+  if int(nsi_json["requirements"]["bandwidth"]) < 10:
     slice_id="3"
-  elif nsi_json["requirements"]["bandwidth"] < 85:
+  elif int(nsi_json["requirements"]["bandwidth"]) < 85:
     slice_id="4"
-  elif nsi_json["requirements"]["bandwidth"] < 110:
+  elif int(nsi_json["requirements"]["bandwidth"]) < 110:
     slice_id="1"
   else:
     slice_id="2"
