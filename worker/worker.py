@@ -367,12 +367,12 @@ def create_slice(nsi_json, slice_name):
   LOG.info("Create Slice")
 
   #TODO Order Slice Creation in 5G
-  # choose the best slice id based in requirements
-  if nsi_json["requirements"].bandwidth < 10:
+  # choose the best slice id based in re"quirements
+  if nsi_json["requirements"]["bandwidth"] < 10:
     slice_id="3"
-  elif nsi_json["requirements"].bandwidth < 85:
+  elif nsi_json["requirements"]["bandwidth"] < 85:
     slice_id="4"
-  elif nsi_json["requirements"].bandwidth < 110:
+  elif nsi_json["requirements"]["bandwidth"] < 110:
     slice_id="1"
   else:
     slice_id="2"
@@ -538,12 +538,12 @@ def get_5g_status(slice_name):
   LOG.info("Get 5G System Status")
   slice_status = {}
 
-  # Check if slice exists
-  all_slice_info = db.get_all_slices()
+  # Check if 5g exists
+  all_slice_info = db_5g.get_all_5g()
   if not slice_name in all_slice_info:
     return (slice_status, 404)
 
-  # Get status for a specific slice
+  # Get status for a specific 5g
   slice_info = db_5g.get_all_5g()
 
   if slice_info:
