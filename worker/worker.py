@@ -396,7 +396,6 @@ def modify_slice(nsi_json, slice_name):
 
   # Change status
   db.update_status_slice("MODIFYING", slice_name)
-  db.mod_slice(slice_name, nsi_json)
   #TODO Order Slice Mofification in 5G
   # see the diferences add new users and remove old users
   old_ue_ids = db.get_slice(slice_name)["ueIds"]
@@ -422,6 +421,7 @@ def modify_slice(nsi_json, slice_name):
     dict_message_r = {"name":"api", "id":"", "action":"remove",
                   "info": {"sliceType":nsi_json["sliceType"],"ueIds":rm_ue_ids}}
     message = client_ssm_thread(dict_message_r)
+  db.mod_slice(slice_name, nsi_json)
   db.update_status_slice("MODIFIED", slice_name)
 
   return ({"message": message}, 201)
