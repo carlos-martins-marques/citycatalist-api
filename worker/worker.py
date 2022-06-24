@@ -415,11 +415,11 @@ def modify_slice(nsi_json, slice_name):
   message=""
   if add_ue_ids:
     dict_message_c = {"name":"api", "id":"", "action":"create",
-                  "info": {"sliceType":nsi_json["sliceType"],"ueIds":add_ue_ids}}
+                  "info": {"sliceType":db.get_slice(slice_name)["sliceType"],"ueIds":add_ue_ids}}
     message = client_ssm_thread(dict_message_c)
   if rm_ue_ids:
     dict_message_r = {"name":"api", "id":"", "action":"remove",
-                  "info": {"sliceType":nsi_json["sliceType"],"ueIds":rm_ue_ids}}
+                  "info": {"sliceType":db.get_slice(slice_name)["sliceType"],"ueIds":rm_ue_ids}}
     message = client_ssm_thread(dict_message_r)
   db.mod_slice(slice_name, nsi_json)
   db.update_status_slice("MODIFIED", slice_name)
