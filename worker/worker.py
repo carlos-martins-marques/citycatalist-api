@@ -544,7 +544,7 @@ def get_5g_status(slice_name):
     return (slice_status, 404)
 
   # Get status for a specific 5g
-  slice_info = db_5g.get_all_5g()
+  slice_info = all_slice_info[slice_name]
 
   if slice_info:
     slice_status["5gName"] = slice_name
