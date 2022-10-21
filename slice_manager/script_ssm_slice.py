@@ -105,7 +105,7 @@ class WSHandler(websocket.WebSocketHandler): #pylint: disable=abstract-method
         liveWebSockets[sfuuid].write_message(to_send_json)
 
       # Estimate time for the creation be applied.
-      time.sleep(30)
+      time.sleep(1)
 
       to_send = {"name": name, "id": _id, "action": action,
                  "message": "Create OK"}
@@ -127,7 +127,7 @@ class WSHandler(websocket.WebSocketHandler): #pylint: disable=abstract-method
         liveWebSockets[sfuuid].write_message(to_send_json)
 
       # Estimate time for the modify be applied.
-      time.sleep(30)
+      time.sleep(1)
 
       to_send = {"name": name, "id": _id, "action": action,
                  "message": "Modify OK"}
@@ -149,7 +149,7 @@ class WSHandler(websocket.WebSocketHandler): #pylint: disable=abstract-method
         liveWebSockets[sfuuid].write_message(to_send_json)
 
       # Estimate time for the remove be applied.
-      time.sleep(30)
+      time.sleep(1)
 
       to_send = {"name": name, "id": _id, "action": action,
                  "message": "Remove OK"}
