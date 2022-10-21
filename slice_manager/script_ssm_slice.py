@@ -104,6 +104,9 @@ class WSHandler(websocket.WebSocketHandler): #pylint: disable=abstract-method
 
         liveWebSockets[sfuuid].write_message(to_send_json)
 
+      # Estimate time for the creation be applied.
+      time.sleep(30)
+
       to_send = {"name": name, "id": _id, "action": action,
                  "message": "Create OK"}
       LOG.info(name + ": to_send = " + str(to_send))
@@ -123,6 +126,9 @@ class WSHandler(websocket.WebSocketHandler): #pylint: disable=abstract-method
 
         liveWebSockets[sfuuid].write_message(to_send_json)
 
+      # Estimate time for the modify be applied.
+      time.sleep(30)
+
       to_send = {"name": name, "id": _id, "action": action,
                  "message": "Modify OK"}
       LOG.info(name + ": to_send = " + str(to_send))
@@ -141,6 +147,9 @@ class WSHandler(websocket.WebSocketHandler): #pylint: disable=abstract-method
         LOG.info(name + ": send new message to SSM" + to_send_json)
 
         liveWebSockets[sfuuid].write_message(to_send_json)
+
+      # Estimate time for the remove be applied.
+      time.sleep(30)
 
       to_send = {"name": name, "id": _id, "action": action,
                  "message": "Remove OK"}
@@ -175,6 +184,9 @@ class WSHandler(websocket.WebSocketHandler): #pylint: disable=abstract-method
 
         liveWebSockets[sfuuid].write_message(to_send_json)
 
+      # Estimate time for the registration be applied.
+      time.sleep(3)
+
       to_send = {"name": name, "id": _id, "action": action,
                  "message": "Registration OK"}
       LOG.info(name + ": to_send = " + str(to_send))
@@ -195,7 +207,7 @@ class WSHandler(websocket.WebSocketHandler): #pylint: disable=abstract-method
         liveWebSockets[sfuuid].write_message(to_send_json)
 
       # Estimate time for the handover be applied.
-      time.sleep(2)
+      time.sleep(1)
 
       to_send = {"name": name, "id": _id, "action": action,
                  "message": "Handover OK"}
@@ -215,6 +227,9 @@ class WSHandler(websocket.WebSocketHandler): #pylint: disable=abstract-method
         LOG.info(name + ": send new message to SSM" + to_send_json)
 
         liveWebSockets[sfuuid].write_message(to_send_json)
+
+      # Estimate time for the deregistration be applied.
+      time.sleep(1)
 
       to_send = {"name": name, "id": _id, "action": action,
                  "message": "Deregistration OK"}
